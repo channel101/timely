@@ -3,9 +3,19 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  cloud_firestore
+  desktop_multi_window
+  firebase_core
+  printing
+  screen_retriever_windows
+  system_tray
+  win_toast
+  window_manager
+  windows_notification
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  flutter_local_notifications_windows
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

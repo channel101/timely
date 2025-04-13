@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "350924770863",
+    "project_id": "timelyy-cce37",
+    "storage_bucket": "timelyy-cce37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:350924770863:android:e72b8dbcca5a48bc6e80da",
+        "android_client_info": {
+          "package_name": "com.example.timely"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXrdj2_q1Vp-8DPNQmIaBdJS6M-LsL5c0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
