@@ -1,16 +1,36 @@
-# timely
+# Trackify - Calendar Application
 
-A new Flutter project.
 
-## Getting Started
+## Overview
+A Flutter application for managing events with features like recurring events, adding, editing, and deleting events, along with printing and filtering capabilities. Built with a clean UI and integrated with Firebase Firestore for data persistence.
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+## Visuals
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+![1](https://github.com/user-attachments/assets/9d1b099c-9fa5-43cd-9cdd-32b8603b4edd)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+![3](https://github.com/user-attachments/assets/416762c1-445d-481f-a175-76abcee44c73)
+
+![2](https://github.com/user-attachments/assets/2087765c-8c4b-4d4c-85cb-9f54b1913fac)
+
+
+
+## Features
+- **Event Management**: Add, edit, and delete simple and recurring events with ease.
+- **Real-Time Sync**: Integrated with Firebase Firestore for real-time data synchronization across devices.
+- **Printing & Filtering**: Print tasks for specific dates, locations, and types, with options to filter events by date range and properties.
+- **Scalable & Stable**: Delivered with smooth animations, real-time updates, and improved stability by resolving Firestore deletion issues.
+- **Cross-Platform**: Built with Flutter for a consistent experience on both desktop and mobile devices.
+
+## Technologies Used
+- **Flutter & Dart**: For cross-platform app development.
+- **Firebase Firestore**: For real-time database and event synchronization.
+- **PDF & Printing**: For generating and printing event reports.
+- **Share Plus**: For sharing event PDFs.
+- **Path Provider & Permission Handler**: For file storage and permissions on Android.
+
+## Setup Instructions
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/nomispal/Trackify.git
+   cd Trackify
