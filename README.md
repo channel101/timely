@@ -2,7 +2,7 @@
 
 
 ## Overview
-A Flutter application for managing events with features like recurring events, adding, editing, and deleting events, along with printing and filtering capabilities. Built with a clean UI and integrated with Firebase Firestore for data persistence.
+Built this for a client (a landlord) to manage his properties and tasks, with features like adding one-time or recurring events, receiving custom notifications, printing, and advanced search with filters
 
 
 ## Visuals
