@@ -8,12 +8,11 @@ Kindly fork the repo if you like it :)
 
 ## Visuals
 
-![1](https://github.com/user-attachments/assets/9d1b099c-9fa5-43cd-9cdd-32b8603b4edd)
+![1](https://github.com/user-attachments/assets/00841e3b-2aa2-4c1f-b651-bc7d15a6504d)
 
-![3](https://github.com/user-attachments/assets/416762c1-445d-481f-a175-76abcee44c73)
+![3](https://github.com/user-attachments/assets/8810e7f1-5a55-47ba-92aa-964a0470f240)
 
-![2](https://github.com/user-attachments/assets/2087765c-8c4b-4d4c-85cb-9f54b1913fac)
-
+![2](https://github.com/user-attachments/assets/ddb036b6-dbc6-46bd-9af1-c06618d69a1e)
 
 
 ## Features
