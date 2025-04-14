@@ -2,7 +2,8 @@
 
 
 ## Overview
-Built this for a client (a landlord) to manage his properties and tasks, with features like adding one-time or recurring events, receiving custom notifications, printing, and advanced search with filters
+Built this for a client (a landlord) to manage his properties and tasks, with features like adding one-time or recurring events, receiving custom notifications, printing, and advanced search with filters.
+Kindly fork the repo if you like it :)
 
 
 ## Visuals
