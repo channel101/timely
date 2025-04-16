@@ -1,125 +1,253 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:timely/models/event.dart';
+import 'package:timely/pages/home_page.dart';
+import 'package:timely/pages/reminders_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:system_tray/system_tray.dart';
+import 'package:timely/services/reminder_service.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:win32_registry/win32_registry.dart';
+import 'firebase_options.dart';
 
-void main() {
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+bool isWindowClosed = false;
+const String socketHost = '127.0.0.1';
+const int socketPort = 58932;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Check for another instance and restore if found
+  if (await _isAnotherInstanceRunning()) {
+    await _sendRestoreCommand();
+    exit(0); // Exit this instance
+  }
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize window manager
+  await windowManager.ensureInitialized();
+
+  // Initialize reminder service and set up periodic checks
+  await ReminderService().init(showMainWindow);
+
+  // Check reminders every minute
+  Timer.periodic(const Duration(minutes: 1), (timer) {
+    ReminderService().checkAndShowNotifications();
+  });
+
+  // Configure window options
+  const mainWindowOptions = WindowOptions(
+    size: Size(1200, 650), // Initial size
+    center: true,
+    backgroundColor: Color(0xFF1A6B3C),
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+    minimumSize: Size(800, 400),
+  );
+
+  // Configure auto-start for Windows
+  await configureAutoStart();
+
+  // Initialize system tray
+  await initSystemTray();
+
+  // Show and focus the window
+  await windowManager.waitUntilReadyToShow(mainWindowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  // Prevent the app from closing fully; minimize to tray instead
+  await windowManager.setPreventClose(true);
+  windowManager.addListener(MyWindowListener());
+
+  // Start the socket server to handle restore commands
+  _startSocketServer();
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.grey[200],
+          elevation: 0,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      routes: {
+        '/': (context) => const HomePage(),
+        '/reminders': (context) => const RemindersScreen(),
+      },
+      initialRoute: '/',
     );
+  }
+}
+
+class MyWindowListener extends WindowListener {
+  @override
+  Future<void> onWindowClose() async {
+    // Minimize to tray instead of closing
+    isWindowClosed = true;
+    await windowManager.hide();
+  }
+
+  @override
+  void onWindowEvent(String eventName) {
+    if (eventName == 'focus' && isWindowClosed) {
+      showMainWindow();
+    }
+  }
+}
+
+Future<void> configureAutoStart() async {
+  if (!Platform.isWindows) return;
+
+  final key = Registry.currentUser.createKey(
+    r'Software\Microsoft\Windows\CurrentVersion\Run',
+  );
+
+  try {
+    final exePath = Platform.resolvedExecutable;
+    key.createValue(
+      RegistryValue(
+        'DayTrack',
+        RegistryValueType.string,
+        exePath,
+      ),
+    );
+  } finally {
+    key.close();
+  }
+}
+
+Future<void> initSystemTray() async {
+  final systemTray = SystemTray();
+  final menu = Menu();
+
+  await systemTray.initSystemTray(
+    iconPath: 'assets/app_icon.ico',
+    toolTip: 'Calendar Reminders',
+  );
+
+  await menu.buildFrom([
+    MenuItemLabel(
+      label: 'Show Reminders',
+      onClicked: (_) async => await showRemindersRoute(),
+    ),
+    MenuItemLabel(
+      label: 'Open App',
+      onClicked: (_) async => await showMainWindow(),
+    ),
+    MenuItemLabel(
+      label: 'Test Reminder Now',
+      onClicked: (_) async {
+        print('Testing notification now');
+        ReminderService().showNotification(
+          Event(
+            id: 'test',
+            title: 'Immediate Test',
+            date: DateTime.now(),
+            reminderDays: 0,
+            reminderPeriodMonths: 0,
+            startTime: DateTime.now(),
+            type: 'personal',
+          ),
+        );
+      },
+    ),
+    MenuSeparator(),
+    MenuItemLabel(
+      label: 'Exit',
+      onClicked: (_) => exit(0), // Explicit exit option
+    ),
+  ]);
+
+  // Handle system tray clicks
+  systemTray.registerSystemTrayEventHandler((eventName) {
+    if (eventName == kSystemTrayEventClick) {
+      // Left click restores the app
+      showMainWindow();
+    } else if (eventName == kSystemTrayEventRightClick) {
+      // Right click shows the context menu
+      systemTray.popUpContextMenu();
+    }
+  });
+}
+
+Future<void> showMainWindow() async {
+  isWindowClosed = false;
+  final isVisible = await windowManager.isVisible();
+  if (!isVisible) {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+  navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+}
+
+Future<void> showRemindersRoute() async {
+  isWindowClosed = false;
+  if (!await windowManager.isVisible()) {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+  if (navigatorKey.currentState?.canPop() ?? false) {
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+  navigatorKey.currentState?.pushNamed('/reminders');
+}
+
+Future<bool> _isAnotherInstanceRunning() async {
+  try {
+    final socket = await Socket.connect(socketHost, socketPort,
+        timeout: const Duration(seconds: 2)); // Increased timeout
+    await socket.close();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+Future<void> _sendRestoreCommand() async {
+  try {
+    final socket = await Socket.connect(socketHost, socketPort,
+        timeout: const Duration(seconds: 2)); // Increased timeout
+    socket.write('restore');
+    await socket.flush();
+    await socket.close();
+  } catch (e) {
+    print('Failed to send restore command: $e');
+  }
+}
+
+void _startSocketServer() async {
+  try {
+    final server = await ServerSocket.bind(socketHost, socketPort);
+    server.listen((socket) async {
+      socket.listen((data) async {
+        final command = String.fromCharCodes(data).trim();
+        if (command == 'restore') {
+          await showMainWindow();
+        }
+      });
+    }, onError: (error) {
+      print('Socket server error: $error');
+    }, onDone: () {
+      print('Socket server closed');
+    });
+  } catch (e) {
+    print('Failed to start socket server: $e');
   }
 }

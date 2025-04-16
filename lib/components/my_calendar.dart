@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:timely/components/event_filter.dart';
+import 'package:timely/main.dart';
+import 'package:timely/pages/event_filter_screen.dart';
+import 'package:timely/pages/print_events_screen.dart';
 import '../state/calendar_controller.dart';
 import 'upcoming_event_list.dart';
 
@@ -154,17 +157,106 @@ class _MyCalendarState extends State<MyCalendar> {
                   );
                 },
               ),
+
+              // Inside the Column's children
               const Divider(color: subtleColor, height: 24, thickness: 1),
-              const Expanded(
+              SizedBox(
+                height: MediaQuery.of(context).size.height *
+                    0.4, // Adjust as needed
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      UpcomingEventsList(),
-                      Divider(color: subtleColor, height: 16, thickness: 1),
+                      const UpcomingEventsList(),
+                      const Divider(
+                          color: subtleColor, height: 16, thickness: 1),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.15,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.filter_list),
+                                  label: const Text('Filter'),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const EventFilterScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    textStyle: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.print),
+                                  label: const Text('Print'),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PrintEventsScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    textStyle: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.notifications),
+                                  label: const Text('Show Reminders'),
+                                  onPressed: () async {
+                                    await showRemindersRoute();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    textStyle: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-
               ),
             ],
           ),

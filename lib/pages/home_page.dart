@@ -4,7 +4,7 @@ import 'package:timely/components/my_calendar.dart';
 import 'package:timely/pages/event_filter_screen.dart';
 import 'package:timely/pages/print_events_screen.dart';
 import 'package:timely/state/calendar_controller.dart';
-import '../main.dart'; // Import main.dart for showRemindersRoute
+import '../main.dart';
 
 // New color scheme
 const Color primaryColor = Color(0xFF1A6B3C);
@@ -76,89 +76,6 @@ class _HomePageState extends State<HomePage>
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16.0),
                   child: HomeCalendar(controller: calendarController),
-                ),
-              ),
-            ),
-            SizedBox(
-              width: screenWidth * 0.15, // Adjust width for buttons column
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: double
-                          .infinity, // Makes all buttons full width of column
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.filter_list),
-                        label: const Text('Filter'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const EventFilterScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          textStyle: const TextStyle(
-                              fontSize: 16), // Consistent text size
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double
-                          .infinity, // Makes all buttons full width of column
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.print),
-                        label: const Text('Print'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const PrintEventsScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          textStyle: const TextStyle(
-                              fontSize: 16), // Consistent text size
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double
-                          .infinity, // Makes all buttons full width of column
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Show Reminders'),
-                        onPressed: () async {
-                          await showRemindersRoute(); // Show reminders from tray
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          textStyle: const TextStyle(
-                              fontSize: 16), // Consistent text size
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),

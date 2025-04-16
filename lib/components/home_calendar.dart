@@ -41,6 +41,7 @@ class _HomeCalendarState extends State<HomeCalendar>
   late Animation<double> _buttonScaleAnimation;
   late DateTime _lastFocusedDay;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isWeeklyView = false;
 
   @override
   void initState() {
@@ -115,6 +116,22 @@ class _HomeCalendarState extends State<HomeCalendar>
     return days;
   }
 
+  DateTime _startOfWeek(DateTime date) {
+    final daysToSubtract = (date.weekday - 1) % 7;
+    return date.subtract(Duration(days: daysToSubtract));
+  }
+
+  DateTime _endOfWeek(DateTime date) {
+    final startOfWeek = _startOfWeek(date);
+    return startOfWeek.add(const Duration(
+        days: 6, hours: 23, minutes: 59, seconds: 59, milliseconds: 999));
+  }
+
+  List<DateTime> _getWeekDays(DateTime focusedDay) {
+    final startOfWeek = _startOfWeek(focusedDay);
+    return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,7 +146,9 @@ class _HomeCalendarState extends State<HomeCalendar>
             _animationController.reset();
             _animationController.forward();
             return Text(
-              DateFormat('MMMM yyyy').format(focusedDay),
+              _isWeeklyView
+                  ? '${DateFormat('d MMM').format(_startOfWeek(focusedDay))} - ${DateFormat('d MMM yyyy').format(_endOfWeek(focusedDay))}'
+                  : DateFormat('MMMM yyyy').format(focusedDay),
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -142,18 +161,46 @@ class _HomeCalendarState extends State<HomeCalendar>
           IconButton(
             icon: const Icon(Icons.chevron_left, color: primaryColor),
             onPressed: () {
-              widget.controller.focusedDayNotifier.value = DateTime(
-                  widget.controller.focusedDayNotifier.value.year,
-                  widget.controller.focusedDayNotifier.value.month - 1);
+              final currentFocusedDay =
+                  widget.controller.focusedDayNotifier.value;
+              if (_isWeeklyView) {
+                widget.controller.focusedDayNotifier.value =
+                    currentFocusedDay.subtract(const Duration(days: 7));
+              } else {
+                widget.controller.focusedDayNotifier.value = DateTime(
+                    currentFocusedDay.year, currentFocusedDay.month - 1);
+              }
             },
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: primaryColor),
             onPressed: () {
-              widget.controller.focusedDayNotifier.value = DateTime(
-                  widget.controller.focusedDayNotifier.value.year,
-                  widget.controller.focusedDayNotifier.value.month + 1);
+              final currentFocusedDay =
+                  widget.controller.focusedDayNotifier.value;
+              if (_isWeeklyView) {
+                widget.controller.focusedDayNotifier.value =
+                    currentFocusedDay.add(const Duration(days: 7));
+              } else {
+                widget.controller.focusedDayNotifier.value = DateTime(
+                    currentFocusedDay.year, currentFocusedDay.month + 1);
+              }
             },
+          ),
+          IconButton(
+            icon: Icon(
+              _isWeeklyView
+                  ? Icons.calendar_view_month
+                  : Icons.calendar_view_week,
+              color: primaryColor,
+            ),
+            onPressed: () {
+              setState(() {
+                _isWeeklyView = !_isWeeklyView;
+              });
+            },
+            tooltip: _isWeeklyView
+                ? 'Switch to Monthly View'
+                : 'Switch to Weekly View',
           ),
         ],
       ),
@@ -171,25 +218,27 @@ class _HomeCalendarState extends State<HomeCalendar>
                               day,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                  fontSize: 14,
                                   color: Colors.grey[800]),
                             ),
                           ),
                         ))
                     .toList(),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Expanded(
                 child: ValueListenableBuilder<DateTime>(
                   valueListenable: widget.controller.focusedDayNotifier,
                   builder: (context, focusedDay, _) {
-                    final monthDays = _getMonthDays(focusedDay);
-                    final startOfMonthDate = _startOfMonth(focusedDay);
-                    final endOfMonthDate = _endOfMonth(focusedDay);
+                    final startDate = _isWeeklyView
+                        ? _startOfWeek(focusedDay)
+                        : _startOfMonth(focusedDay);
+                    final endDate = _isWeeklyView
+                        ? _endOfWeek(focusedDay)
+                        : _endOfMonth(focusedDay);
 
                     return StreamBuilder<List<Event>>(
-                      stream: Event.getEventsForDateStream(
-                          startOfMonthDate, endOfMonthDate),
+                      stream: Event.getEventsForDateStream(startDate, endDate),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -212,150 +261,9 @@ class _HomeCalendarState extends State<HomeCalendar>
                         final events = snapshot.data ?? [];
                         return FadeTransition(
                           opacity: _fadeAnimation,
-                          child: GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 7,
-                              childAspectRatio: 1.0,
-                            ),
-                            itemCount: monthDays.length,
-                            itemBuilder: (context, index) {
-                              final day = monthDays[index];
-                              final isCurrentMonth =
-                                  day.month == focusedDay.month;
-                              final dayEvents = events
-                                  .where(
-                                      (event) => _isSameDate(event.date, day))
-                                  .toList();
-
-                              return GestureDetector(
-                                onTap: () =>
-                                    _showDayDetailsDialog(day, dayEvents),
-                                child: Container(
-                                  margin: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: isCurrentMonth
-                                        ? cardColor
-                                        : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border:
-                                        Border.all(color: Colors.grey[200]!),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(4.0),
-                                        child: Align(
-                                          alignment: Alignment.topLeft,
-                                          child: Text(
-                                            '${day.day}',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: isCurrentMonth
-                                                  ? Colors.black87
-                                                  : Colors.grey[400],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      if (dayEvents.isNotEmpty)
-                                        Positioned(
-                                          top: 20,
-                                          bottom: 2,
-                                          left: 2,
-                                          right: 2,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              ...dayEvents.take(5).map(
-                                                    (event) => Padding(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 1.0),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Container(
-                                                            width: 4,
-                                                            height: 4,
-                                                            margin:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                                    right: 4),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                              color: _eventTypeColor[
-                                                                      event.type
-                                                                          .toLowerCase()] ??
-                                                                  accentColor,
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            child: Text(
-                                                              event.title.length >
-                                                                      12
-                                                                  ? '${event.title.substring(0, 12)}...'
-                                                                  : event.title,
-                                                              style: TextStyle(
-                                                                fontSize: 9,
-                                                                color: isCurrentMonth
-                                                                    ? Colors
-                                                                        .black87
-                                                                    : Colors.grey[
-                                                                        400],
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          if (event
-                                                                  .isRecurring ||
-                                                              event.recurrenceInterval !=
-                                                                  null ||
-                                                              event.id.contains(
-                                                                  '--'))
-                                                            const Icon(
-                                                                Icons.repeat,
-                                                                size: 8,
-                                                                color:
-                                                                    primaryColor),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                              if (dayEvents.length > 5)
-                                                Text(
-                                                  '+${dayEvents.length - 5}',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: isCurrentMonth
-                                                        ? primaryColor
-                                                        : Colors.grey[400],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                          child: _isWeeklyView
+                              ? _buildWeeklyView(focusedDay, events)
+                              : _buildMonthlyView(focusedDay, events),
                         );
                       },
                     );
@@ -366,6 +274,284 @@ class _HomeCalendarState extends State<HomeCalendar>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMonthlyView(DateTime focusedDay, List<Event> events) {
+    final monthDays = _getMonthDays(focusedDay);
+    final today = DateTime.now();
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        childAspectRatio: 0.85, // Adjusted for better event display
+      ),
+      itemCount: monthDays.length,
+      itemBuilder: (context, index) {
+        final day = monthDays[index];
+        final isCurrentMonth = day.month == focusedDay.month;
+        final isToday = _isSameDate(day, today);
+        final dayEvents =
+            events.where((event) => _isSameDate(event.date, day)).toList();
+
+        return GestureDetector(
+          onTap: () => _showDayDetailsDialog(day, dayEvents),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              gradient: isToday
+                  ? LinearGradient(
+                      colors: [
+                        accentColor.withOpacity(0.3),
+                        accentColor.withOpacity(0.1)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isToday
+                  ? null
+                  : (isCurrentMonth ? cardColor : Colors.grey[100]),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(isToday ? 0.3 : 0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Day Number
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isToday ? accentColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${day.day}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isToday
+                            ? Colors.white
+                            : (isCurrentMonth
+                                ? Colors.black87
+                                : Colors.grey[400]),
+                      ),
+                    ),
+                  ),
+                ),
+                // Events
+                if (dayEvents.isNotEmpty)
+                  Positioned(
+                    top: 28,
+                    bottom: 4,
+                    left: 4,
+                    right: 4,
+                    child: AnimatedOpacity(
+                      opacity: dayEvents.isNotEmpty ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: ListView(
+                        children: [
+                          ...dayEvents.take(3).map(
+                                (event) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _eventTypeColor[
+                                                  event.type.toLowerCase()]
+                                              ?.withOpacity(0.2) ??
+                                          subtleColor,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          margin:
+                                              const EdgeInsets.only(right: 6),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: _eventTypeColor[
+                                                    event.type.toLowerCase()] ??
+                                                accentColor,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            event.title.length > 10
+                                                ? '${event.title.substring(0, 10)}...'
+                                                : event.title,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: isCurrentMonth
+                                                  ? Colors.black87
+                                                  : Colors.grey[400],
+                                              fontWeight: FontWeight.w500,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                        if (event.isRecurring ||
+                                            event.recurrenceInterval != null ||
+                                            event.id.contains('--'))
+                                          const Icon(Icons.repeat,
+                                              size: 10, color: primaryColor),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          if (dayEvents.length > 3)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 2.0),
+                              child: Text(
+                                '+${dayEvents.length - 3} more',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isCurrentMonth
+                                      ? primaryColor
+                                      : Colors.grey[400],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWeeklyView(DateTime focusedDay, List<Event> events) {
+    final weekDays = _getWeekDays(focusedDay);
+    return Row(
+      children: weekDays.map((day) {
+        final dayEvents =
+            events.where((event) => _isSameDate(event.date, day)).toList();
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => _showDayDetailsDialog(day, dayEvents),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isSameDate(day, focusedDay)
+                          ? accentColor.withOpacity(0.2)
+                          : Colors.grey[200],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        topRight: Radius.circular(8),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${day.day} ${DateFormat('MMM').format(day)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _isSameDate(day, focusedDay)
+                              ? primaryColor
+                              : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: dayEvents.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No Events',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[600]),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: dayEvents.length,
+                            itemBuilder: (context, index) {
+                              final event = dayEvents[index];
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _eventTypeColor[event.type.toLowerCase()]
+                                              ?.withOpacity(0.2) ??
+                                          subtleColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 4,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: _eventTypeColor[
+                                                event.type.toLowerCase()] ??
+                                            accentColor,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        event.title,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.black87),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (event.isRecurring ||
+                                        event.recurrenceInterval != null ||
+                                        event.id.contains('--'))
+                                      const Icon(Icons.repeat,
+                                          size: 12, color: primaryColor),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -389,7 +575,7 @@ class _HomeCalendarState extends State<HomeCalendar>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    DateFormat('EEEE, MMMM d, yyyy').format(day),
+                    DateFormat('d MMM yyyy').format(day),
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -499,7 +685,7 @@ class _HomeCalendarState extends State<HomeCalendar>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Date: ${DateFormat('MMMM d, yyyy').format(event.date)}',
+                  'Date: ${DateFormat('d MMM yyyy').format(event.date)}',
                   style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                 ),
                 if (event.address != null && event.address!.isNotEmpty) ...[
