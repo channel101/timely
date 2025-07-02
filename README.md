@@ -1,4 +1,4 @@
-# Trackify - Calendar Application
+# Trackify - A play on “what to do” + “where to do it.”
 
 
 ## Overview
