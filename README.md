@@ -8,7 +8,7 @@ Kindly fork the repo if you like it :)
 
 ## Visuals
 
-![1](https://github.com/user-attachments/assets/00841e3b-2aa2-4c1f-b651-bc7d15a6504d)
+![Thumbnail](https://github.com/user-attachments/assets/d8afe229-02bd-442a-a4f4-6722c8d47329)
 
 ![3](https://github.com/user-attachments/assets/8810e7f1-5a55-47ba-92aa-964a0470f240)
 
