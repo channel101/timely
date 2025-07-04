@@ -23,7 +23,7 @@ Kindly fork the repo if you like it :)
 - **Cross-Platform**: Built with Flutter for a consistent experience on both desktop and mobile devices.
 
 ## Technologies Used
-- **Flutter & Dart**: For cross-platform app development.
+- **Flutter & Dart**: For cross platform app development.
 - **Firebase Firestore**: For real-time database and event synchronization.
 - **PDF & Printing**: For generating and printing event reports.
 - **Share Plus**: For sharing event PDFs.
