@@ -1,0 +1,51 @@
+name: Flutter Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        platform: [android, ios, windows]
+        exclude:
+          - os: ubuntu-latest
+            platform: ios
+          - os: ubuntu-latest
+            platform: windows
+          - os: windows-latest
+            platform: ios
+          - os: windows-latest
+            platform: android
+          - os: macos-latest
+            platform: windows
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build ${{ matrix.platform }}
+      run: |
+        if [ "${{ matrix.platform }}" = "android" ]; then
+          flutter build apk --release
+        elif [ "${{ matrix.platform }}" = "ios" ]; then
+          flutter build ios --release --no-codesign
+        elif [ "${{ matrix.platform }}" = "windows" ]; then
+          flutter build windows --release
+        fi
+      shell: bash
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+    - name: Build Windows (on Windows runner)
+      run: flutter build windows --release
+      if: matrix.os == 'windows-latest' && matrix.platform == 'windows'
